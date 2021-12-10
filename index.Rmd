@@ -46,92 +46,186 @@ class_diag <- function(score, truth, positive, cutoff=.5){
 
 # Mining, Classification, Prediction
 
-## Name and EID here
+## Vanessa Zavala, vz988
 
 ### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information
+The data set that is used in this project was acquired through the 'Stat2Data' package in R. This data set is based on medical school acceptance and the standardized test scores that belong to each individual. The data set includes 54 observations of 11 variables which include acceptance status (either A/1 for accepted or D/0 for denied), GPA for biology, chemistry, physics, and math, overall GPA, subscores for verbal reasoning, physical sciences, writing sample, and biological sciences, MCAT score, and the number of medical schools applied to. Each variable has 54 observations, however, in the original data set, there was 55 observations but to use the data to the best of its ability, all NAs were removed. There are two binary variables, however, they give the same information, whether the individual was accepted or denied. There are 30 individuals that were accepted into medical school (either A or 1) and 24 individuals that were not accepted (either D or 0). 
 
 ```{R}
 library(tidyverse)
-# read your datasets in here, e.g., with read_csv()
-
-# if your dataset needs tidying, do so here
-
-# any other code here
+MedGPA <- read.csv("MedGPA.csv")
+MedGPA %>% na.omit() %>% select(-1) ->MedGPA
+MedGPA %>% filter(Accept=="A")%>% count()
+MedGPA %>% filter(Accept=="D")%>% count()
 ```
 
 ### Cluster Analysis
 
 ```{R}
 library(cluster)
-# clustering code here
+clust_data <- MedGPA %>% select(BCPM, GPA, MCAT)
+
+pam1<-clust_data%>%pam(k=4)
+pam1$silinfo$avg.width
+plot(pam1,which=2)
+pamclust<-clust_data%>%mutate(cluster=as.factor(pam1$clustering))
+
+pam_dat<-MedGPA%>%select(BCPM, GPA, MCAT)
+sil_width<-vector()
+for(i in 2:10){  
+  pam_fit <- pam(pam_dat, k = i)  
+  sil_width[i] <- pam_fit$silinfo$avg.width  
+}
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+library(plotly)
+pamclust%>%plot_ly(x= ~BCPM,  y = ~GPA, z = ~MCAT, color= ~cluster, type = "scatter3d", mode = "markers")
+
+library(GGally)
+ggpairs(pamclust, columns= 1:3,aes(color=cluster))
 ```
 
-Discussion of clustering here
-    
+In the beginning, only three variables were used to form the clusters. These three variables are the bio/chem/physics/math gpa, overall gpa, and the MCAT scores of each individual. Before conducting the PAM clustering, I first had to decide how many clusters to form. To find that out, I used the silhouette width average that was obtained two different ways in the code above. Both of these codes resulted in a average silhouette width of approximately 0.60 for 4 cluster groups. This average silhouette width is not the best final fit of the clustering, but it is considered to be reasonable. In this case, individuals 31, 20, 27, and 17 are used as medoids for the MedGPA data. Viewing all the pairwise combinations of the variables allows us to see the different interactions between MCAT scores, overall gpa, and the math and sciences gpa. As you can see in the final graph, the highest correlation belongs to GPA and BCPM (math and sciences gpa) that results in 0.952. Additionally, the correlations between MCAT to BCPM or GPA are somewhat similar to each other, 0.417 and 0.444, respectively. This shows that GPA and BCPM does not really account for the scores an individual could receive when taking an MCAT test. When viewing the pairwise combination between GPA and BCPM to each other, it is hard to tell where each cluster lies since they are all stacked on one another, however, with MCAT this does not apply. You can see the individual clusters and how MCAT interacts with BCPM or GPA to form the clusters. With the 3D plot, it is easy to visualize each of these clusters and how MCAT, GPA, and BCPM interact to form the respective cluster. Individuals in the second cluster had high gpas as well as a high MCAT score, which is opposite to those in the third cluster, who had a lot lower GPAs and MCAT scores. Individuals in clusters 1 and 4 were in between clusters 2 and 3, meaning they had median GPAs and MCAT scores, however, individuals in cluster 1 had higher GPAs and MCAT scores than those in cluster 4.
     
 ### Dimensionality Reduction with PCA
 
 ```{R}
-# PCA code here
+medgpa<-MedGPA %>% select(-Accept, -Acceptance, -Sex)%>%select_if(is.numeric)%>%scale
+medgpa_pca<-princomp(medgpa, cor=T)
+summary(medgpa_pca, loadings=T)
+library(factoextra)
+fviz_pca_biplot(medgpa_pca)
 ```
 
-Discussions of PCA here. 
+With the principal component analysis conducted, it is easy to determine which principal components to keep, depending on how much variance is accounted for within each principal component. With the MedGPA data set, to conduct PCA, I had to remove the binary variables that were within the data set and scale the values so that the solutions would be easier to understand. Once that was done, PCA was conducted and the results are shown using the summary function. Based on the principal components shown, I've decided to keep only 4 of those which would equal to about 84% of the variance. The components that are kept would be PC1, PC2, PC3, and PC4. With PC1, based on the loadings, an individual who scores high on PC1 would have high scores for BCPM, GPA, VR, PS, WS, BS, and MCAT but would score low for Apps. This means the individual has high standardized test scores which in turn, results in them applying to fewer medical schools. Those who score low on PC1 have lower standardized test scores but apply to more medical schools. For those who scored high on PC2, individuals had higher BCPM (biology, chemistry, physics and math GPA), GPA, and BS (biological sciences subscore) scores but lower VR (verbal reasoning subscore), WS (writing sample subscore), and MCAT scores. For those who scored low on PC2, scored lower in BCPM, GPA, and BS but scored higher in VR, WS, and the MCAT. This shows that there is a trade-off between those who had higher GPAs but lower MCAT scores, and those who had higher MCAT scores, but lower GPAs. For individuals that scored high in PC3, they scored higher in VR and PS and applied to more medical schools, however, those who scored low, scored higher in WS with lower VR and PS scores and appled to less medical schools. Those who scored high in PC4, scored higher in WS, BS, and applied to more medical schools, however, those who scored low, scored higher in VR but lower in WS, BS and applied to less medical schools.  
 
 ###  Linear Classifier
 
 ```{R}
-# linear classifier code here
+medgpaLC<-MedGPA%>%select(-Accept, -Sex)
+glm(Acceptance ~ . , data=medgpaLC, family="binomial")
+fit <- lm(Acceptance ~ . , data=medgpaLC, family="binomial")
+probs <- predict(fit, type="response")
+class_diag(probs, medgpaLC$Acceptance, positive=1) 
+
+med2<-MedGPA %>% select(-Accept, -Sex)%>% mutate(y=ifelse(Acceptance==1,1,0))
+med2$Acceptance<-NULL 
+fit2 <- glm(y ~ . , data=med2, family="binomial")
+prob <- predict(fit2,type="response") 
+class_diag(prob,med2$y,positive=1)
+
+table(truth = medgpaLC$Acceptance, predictions = probs>.5)
+
 ```
 
 ```{R}
-# cross-validation of linear classifier here
+k=5
+data<-med2[sample(nrow(med2)),]
+folds<-cut(seq(1:nrow(med2)),breaks=k,labels=F)
+diags<-NULL
+for(i in 1:k){
+  train<-data[folds!=i,] 
+  test<-data[folds==i,]
+  truth<-test$y
+  fit5<-glm(y~.,data=train,family="binomial")
+  probs2<-predict(fit5,newdata = test,type="response")
+  diags<-rbind(diags,class_diag(probs2,truth, positive=1))
+}
+summarize_all(diags,mean)
 ```
 
-Discussion here
+In order to determine which linear classifier to use, I tested the data using both the linear and logistic regression models. Both results were somewhat different from one another. The accuracy for both models is 0.8519 but the AUC was different. For the linear regression model, the AUC was 0.925 whereas the AUC for the logistic regression was 0.9417. I decided to go with the logistic regression because the AUC was higher, thus showing a great in sample performance. However, when using the same data for a k-fold cross validation, the AUC was a lot lower than expected. Since the data is small, 5 folds were used in which the data was separated randomly to use as the training data set and then this data was then used to test the remaining the data. When this occurred, the AUC dropped to 0.8748. This means that the logistic regression model is overfitting the data. Also, you can see that the accuracy decreased from 0.8519 to 0.8346. 
 
 ### Non-Parametric Classifier
 
 ```{R}
 library(caret)
-# non-parametric classifier code here
+fit3 <- knn3(Acceptance ~ . , data=medgpaLC)
+probs3 <- predict(fit3, newdata=medgpaLC)[,2]
+class_diag(probs3, medgpaLC$Acceptance, positive=1) 
 ```
 
 ```{R}
-# cross-validation of np classifier here
+k = 5
+data <- sample_frac(medgpaLC) 
+folds <- rep(1:k, length.out = nrow(data))  
+diags2 <- NULL
+
+i = 1
+for (i in 1:k) {
+    train <- data[folds != i, ]
+    test <- data[folds == i, ]
+    truth <- test$Acceptance
+    
+    fit4 <- knn3(Acceptance ~ . , data=medgpaLC)
+    
+    probs <- predict(fit4, newdata = test)[, 2]
+    
+    diags2 <- rbind(diags2, class_diag(probs, truth, positive = 1))
+}
+
+summarize_all(diags, mean)
 ```
 
-Discussion
+To conduct the nonlinear classifier, I decided to use the k-nearest-neighbors model which resulted in an okay in sample performance. Both the accuracy and the AUC are lower than the those found in the linear classifier in sample performance. For the knn model, the accuracy is 0.7778 and the AUC is 0.8535, which is not the best AUC for a model. However, when the k-fold cross validation was conducted, both the accuracy and AUC increased. For the out of sample performance, the accuracy increased from 0.7778 to 0.8346 and the AUC increased from 0.8535 to 0.8748. This means that there is no overfitting and the cross-validation model works best for the data set. When comparing the performances of the linear and non-linear classifiers in cross validation, the non-linear model performed a lot better in which the AUC increased and there are no signs of overfitting, unlike the performance found within the linear model. 
 
 
 ### Regression/Numeric Prediction
 
 ```{R}
-# regression model code here
+fit6<-lm(MCAT~BCPM+GPA,data=MedGPA)
+yhat<-predict(fit6) 
+mean((MedGPA$MCAT-yhat)^2)
+
 ```
 
 ```{R}
-# cross-validation of regression model here
+k=5 
+data2 <- sample_frac(MedGPA) 
+folds <- rep(1:k, length.out = nrow(data2))  
+diags3<-NULL
+
+for(i in 1:k){
+  train<-data[folds!=i,]
+  test<-data[folds==i,]
+
+  fit7<-lm(MCAT~BCPM+GPA,data=train)
+
+  yhat<-predict(fit7,newdata=test)
+
+  diags3<-mean((test$MCAT-yhat)^2) 
+}
+mean(diags3) 
 ```
 
-Discussion
+A linear regression model was used here in order to predict the MCAT scores of individuals using their BCPM and GPA. For the in sample performance test, the MSE was 13.57. When using the k-fold cross validation, the out of sample performance was poorer than the in sample performance. This is deduced because the MSE increased from 13.57 to 27.27, meaning that there is overfitting within this model. 
 
 ### Python 
 
 ```{R}
 library(reticulate)
+use_python("/usr/bin/python3")
+plot <- import("matplotlib")
+plot$use("Agg", force = TRUE)
+
+m<-MedGPA$MCAT
+g<-MedGPA$GPA
 ```
 
 ```{python}
-# python code here
+import matplotlib.pyplot as plt
+plt.scatter(r.m,r.g)
+plt.xlabel('MCAT')
+plt.ylabel('GPA')
+plt.title('MCAT vs GPA')
+plt.show()
 ```
 
-Discussion
+Within the R code chunk, two variables were saved in which 'm' is equivalent to the MCAT scores of the individuals within the MedGPA data set and 'g' is equivalent to the GPAs of the individuals. Then within the python code chunk, the variables from r were grabbed using r. in order to form a scatter plot using plt.scatter in python. 
 
 ### Concluding Remarks
 
-Include concluding remarks here, if any
+Overall, with the use of these analysis tools, it is evident that there can be many groupings of the variables in order to determine MCAT scores or Acceptance status. We can also see how each and every one of these variables interact with one another and how this can effect the different variables. Before these tools, MedGPA data set was just numbers, but now it is so much more and full of information. 
 
 
 
