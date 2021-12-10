@@ -134,7 +134,7 @@ for(i in 1:k){
 summarize_all(diags,mean)
 ```
 
-In order to determine which linear classifier to use, I tested the data using both the linear and logistic regression models. Both results were somewhat different from one another. The accuracy for both models is 0.8519 but the AUC was different. For the linear regression model, the AUC was 0.925 whereas the AUC for the logistic regression was 0.9417. I decided to go with the logistic regression because the AUC was higher, thus showing a great in sample performance. However, when using the same data for a k-fold cross validation, the AUC was a lot lower than expected. Since the data is small, 5 folds were used in which the data was separated randomly to use as the training data set and then this data was then used to test the remaining the data. When this occurred, the AUC dropped to 0.8748. This means that the logistic regression model is overfitting the data. Also, you can see that the accuracy decreased from 0.8519 to 0.8346. 
+In order to determine which linear classifier to use, I tested the data using both the linear and logistic regression models. Both results were somewhat different from one another. The accuracy for both models is 0.8519 but the AUC was different. For the linear regression model, the AUC was 0.925 whereas the AUC for the logistic regression was 0.9417. I decided to go with the logistic regression because the AUC was higher, thus showing a great in sample performance. However, when using the same data for a k-fold cross validation, the AUC was a lot lower than expected. Since the data is small, 5 folds were used in which the data was separated randomly to use as the training data set and then this data was then used to test the remaining the data. When this occurred, the accuracy and AUC dropped immensely. This means that the logistic regression model is overfitting the data.
 
 ### Non-Parametric Classifier
 
@@ -167,7 +167,7 @@ for (i in 1:k) {
 summarize_all(diags, mean)
 ```
 
-To conduct the nonlinear classifier, I decided to use the k-nearest-neighbors model which resulted in an okay in sample performance. Both the accuracy and the AUC are lower than the those found in the linear classifier in sample performance. For the knn model, the accuracy is 0.7778 and the AUC is 0.8535, which is not the best AUC for a model. However, when the k-fold cross validation was conducted, both the accuracy and AUC increased. For the out of sample performance, the accuracy increased from 0.7778 to 0.8346 and the AUC increased from 0.8535 to 0.8748. This means that there is no overfitting and the cross-validation model works best for the data set. When comparing the performances of the linear and non-linear classifiers in cross validation, the non-linear model performed a lot better in which the AUC increased and there are no signs of overfitting, unlike the performance found within the linear model. 
+To conduct the nonlinear classifier, I decided to use the k-nearest-neighbors model which resulted in an okay in-sample performance. Both the accuracy and the AUC are lower than the those found in the linear classifier in sample performance. For the knn model, the accuracy is 0.7778 and the AUC is 0.8535, which is not the best AUC for a model. However, when the k-fold cross validation was conducted, both the accuracy and AUC increased. This means that there is no overfitting and the cross-validation model works best for the data set. When comparing the performances of the linear and non-linear classifiers in cross validation, the non-linear model performed a lot better in which the AUC increased and there are no signs of overfitting, unlike the performance found within the linear model. 
 
 
 ### Regression/Numeric Prediction
@@ -198,7 +198,7 @@ for(i in 1:k){
 mean(diags3) 
 ```
 
-A linear regression model was used here in order to predict the MCAT scores of individuals using their BCPM and GPA. For the in sample performance test, the MSE was 13.57. When using the k-fold cross validation, the out of sample performance was poorer than the in sample performance. This is deduced because the MSE increased from 13.57 to 27.27, meaning that there is overfitting within this model. 
+A linear regression model was used here in order to predict the MCAT scores of individuals using their BCPM and GPA. For the in sample performance test, the MSE was 13.57. When using the k-fold cross validation, the out of sample performance was poorer than the in sample performance. This is deduced because the MSE increased, meaning that there is overfitting within this model. 
 
 ### Python 
 
